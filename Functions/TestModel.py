@@ -69,7 +69,11 @@ import MainLoop as main
 import DisplayMetrics as dm
 
 # Performance Metrics
-from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
+from torcheval.metrics import BinaryAccuracy, BinaryPrecision, BinaryRecall, BinaryF1Score
+from torchmetrics.classification import Dice, BinaryJaccardIndex
+# from torchmetrics.detection import IntersectionOverUnion
+# from torchmetrics import JaccardIndex
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -127,7 +131,7 @@ def test_model(model, dataloader, loss_function, device):
             # Plot results - images 
             print('\n')
             lent = orig_images.cpu().numpy().shape[0]
-            pr.plot_results(lent, orig_images, altered_images, masks, pred_masks)
+            pr.plot_results(lent, orig_images, masks, pred_masks)
 
             # Flatten the masks tensors
             masks = masks.view(-1)

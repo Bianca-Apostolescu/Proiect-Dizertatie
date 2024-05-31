@@ -95,7 +95,7 @@ def filter_data(ann_path, filterCls, bm_path, IMAGE_PATH, MASK_PATH):
     binaryMaskPaths = []
     
     # Initialize the COCO api for instance annotations
-    coco = COCO(path)
+    coco = COCO(ann_path)
 
     # Fetch class IDs only corresponding to the filterClasses
     catIds = coco.getCatIds(catNms = filterCls) 

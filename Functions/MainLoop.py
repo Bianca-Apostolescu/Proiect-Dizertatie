@@ -26,6 +26,7 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
+import wandb
 
 # For importing models and working with them
 ## Torch
@@ -105,7 +106,7 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
         (trainImages, testImages) = split[:2]
         (trainMasks, testMasks) = split[2:]
 
-        split = train_test_split(trainImages, trainMasks, test_size = VALID_SPLIT, random_state = 19)
+        split = train_test_split(trainImages, trainMasks, test_size = valid_split, random_state = 19)
         (trainImages, valImages) = split[:2]
         (trainMasks, valMasks) = split[2:]
 

@@ -98,9 +98,9 @@ def validate_model(model, dataloader, loss_function, device):
     with torch.no_grad():
       # total_val_loss = 0
 
-      for orig_images, altered_images, masks in dataloader:
+      for orig_images, masks in dataloader:
             orig_images, masks = orig_images.to(device), masks.to(device)
-            pred_masks = model(images) # validate on altered_images
+            pred_masks = model(orig_images) # validate on altered_images
   
   
             val_loss = loss_function(pred_masks, masks)

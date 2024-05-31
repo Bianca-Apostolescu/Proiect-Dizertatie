@@ -78,14 +78,6 @@ print(device)
 # %matplotlib inline
 
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
 
 def create_csvs(imagePaths, binaryMaskPaths, small, medium, large):
     

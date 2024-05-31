@@ -79,15 +79,6 @@ print(device)
 # %matplotlib inline
 
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
 def train_model(model, dataloader, loss_function, optim, device):
     print("Training...")
 
