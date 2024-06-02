@@ -80,13 +80,6 @@ print(device)
 # %matplotlib inline
 
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
 
 
 def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name, lr, batch_size, epochs, test_split, valid_split, pin_memory):
@@ -203,6 +196,11 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
             endTime = time.time()
             print("[INFO] Total time taken to train and validate the model: {:.2f}s".format(endTime - startTime))
 
+
+            # Save models 
+            torch.save(model.state_dict(), os.path.join(wandb.run.dir, f'epoch_{epoch}_model.pth'))
+            # model.save(os.path.join(wandb.run.dir, f'epoch_{epoch}_model.pth'))
+            wandb.save(f'epoch_{epoch}_model.pth')
 
             #### TESTING LOOP ####
             avg_test_loss, avg_accuracy, avg_precision, avg_recall, avg_f1_score, avg_dice_score, avg_iou = testModel.test_model(model, test_loader, lossFunc, device)

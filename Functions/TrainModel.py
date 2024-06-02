@@ -87,7 +87,7 @@ def train_model(model, dataloader, loss_function, optim, device):
     model.train() # unet.train.train() 
 
     for orig_images, masks in dataloader:
-        images, altered_images, masks = orig_images.to(device), masks.to(device)
+        images, masks = orig_images.to(device), masks.to(device)
 
         optim.zero_grad()
         pred_masks = model(images)

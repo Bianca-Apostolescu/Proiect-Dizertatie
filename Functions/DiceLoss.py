@@ -32,6 +32,7 @@ import seaborn as sns
 import torch
 import torch.utils.data # for Dataset
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.optim import Adam
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
@@ -79,13 +80,6 @@ print(device)
 # %matplotlib inline
 
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
 
 
 class DiceBCELoss(nn.Module):
