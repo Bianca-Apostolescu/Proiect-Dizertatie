@@ -68,6 +68,7 @@ import EarlyStopping as stopping
 import PlotResults as pr
 import MainLoop as main
 import DisplayMetrics as dm
+import GCANet as gca
 
 # Performance Metrics
 from sklearn.metrics import multilabel_confusion_matrix
@@ -82,12 +83,17 @@ print(device)
 
 
 
-def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name, lr, batch_size, epochs, test_split, valid_split, pin_memory):
+def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name, lr, batch_size, epochs, test_split, valid_split, pin_memory, model_type, channels, dataset_type, saved_model_path = None):
     
     wandb.login()
     
     imagePaths = list(loaded_df["Image_Paths"])
     binaryMaskPaths = list(loaded_df["Binary_Paths"])
+    maskPaths = list(loaded_df["Mask_Paths"])
+
+    print(f"images = {len(imagePaths)}")
+    print(f"binaryMaskPaths = {len(binaryMaskPaths)}")
+    print(f"maskPaths = {len(maskPaths)}")
 
     for tts in test_split:
         print("[INFO] TEST_SPLIT = {} ...".format(tts))
@@ -95,28 +101,32 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
         print("Splits, Datasets, and Dataloaders")
         startTime = time.time()
 
-        split = train_test_split(imagePaths, binaryMaskPaths, test_size = tts, random_state = 19)
-        (trainImages, testImages) = split[:2]
-        (trainMasks, testMasks) = split[2:]
 
-        split = train_test_split(trainImages, trainMasks, test_size = valid_split, random_state = 19)
-        (trainImages, valImages) = split[:2]
-        (trainMasks, valMasks) = split[2:]
+        if dataset_type == 'cocoms':
+          split = train_test_split(imagePaths, binaryMaskPaths, maskPaths, test_size = tts, random_state = 19)
+          (trainImages, testImages) = split[:2]             # First two elements are the train and test splits of imagePaths
+          (trainBinaryMasks, testBinaryMasks) = split[2:4]  # Next two elements are the train and test splits of binaryMaskPaths
+          (trainMasks, testMasks) = split[4:]               # Last two elements are the train and test splits of maskPaths
 
-        print("[INFO] saving testing image paths...")
-        f = open(test_paths, "w")
-        f.write("\n".join(testImages))
-        f.close()
+          split = train_test_split(trainImages, trainBinaryMasks, trainMasks, test_size = valid_split, random_state = 19)
+          (trainImages, valImages) = split[:2]             # First two elements are the train and test splits of imagePaths
+          (trainBinaryMasks, valBinaryMasks) = split[2:4]  # Next two elements are the train and test splits of binaryMaskPaths
+          (trainMasks, valMasks) = split[4:]               # Last two elements are the train and test splits of maskPaths
+
+          print("[INFO] saving testing image paths...")
+          f = open(test_paths, "w")
+          f.write("\n".join(testImages))
+          f.close()
 
        
-        # Create datasets and data loaders for training, validation, and testing sets
-        train_dataset = crd.SegmentationDataset(trainImages, trainMasks, transforms = transforms_train)
-        val_dataset   = crd.SegmentationDataset(valImages,   valMasks,   transforms = transforms_test)
-        test_dataset  = crd.SegmentationDataset(testImages,  testMasks,  transforms = transforms_test)
+          # Create datasets and data loaders for training, validation, and testing sets
+          train_dataset = crd.SegmentationDataset(trainImages, trainBinaryMasks, trainMasks, transforms = transforms_train)
+          val_dataset   = crd.SegmentationDataset(valImages,   valBinaryMasks,   valMasks,   transforms = transforms_test)
+          test_dataset  = crd.SegmentationDataset(testImages,  testBinaryMasks,  testMasks,  transforms = transforms_test)
 
-        train_loader = DataLoader(train_dataset, shuffle = True,  batch_size = batch_size, pin_memory = pin_memory)
-        val_loader   = DataLoader(val_dataset,   shuffle = False, batch_size = batch_size, pin_memory = pin_memory)
-        test_loader  = DataLoader(test_dataset,  shuffle = False, batch_size = batch_size, pin_memory = pin_memory)
+          train_loader = DataLoader(train_dataset, shuffle = True,  batch_size = batch_size, pin_memory = pin_memory)
+          val_loader   = DataLoader(val_dataset,   shuffle = False, batch_size = batch_size, pin_memory = pin_memory)
+          test_loader  = DataLoader(test_dataset,  shuffle = False, batch_size = batch_size, pin_memory = pin_memory)
         
 
 
@@ -132,15 +142,21 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
 
         for epoch in epochs:
             
-            unet = smp.Unet(
-                encoder_name = "resnet101",
-                encoder_weights = "imagenet",
-                in_channels = 3,  # 3 channels for the image
-                classes = 1,  # 1 class => binary mask
-                activation = 'sigmoid'
-               ).to(device)
-            
-            model = unet
+            if model_type == 'GCA':
+              gcanet = gca.GCANet(in_c = channels, out_c = 1, only_residual = True).to(device)
+              model = gcanet
+
+            elif model_type == 'unet':
+
+              unet = smp.Unet(
+                  encoder_name = "resnet101",
+                  encoder_weights = "imagenet",
+                  in_channels = 3,  # 3 channels for the image
+                  classes = 1,  # 1 class => binary mask
+                  activation = 'sigmoid'
+                ).to(device)
+              
+              model = unet
             
             # Initialize loss function and optimizer
             # lossFunc = nn.BCEWithLogitsLoss()
@@ -157,6 +173,30 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
                       "batch": batch_size
                       },
               )
+
+            
+            if saved_model_path:
+              print(f"[INFO] Loading model from {saved_model_path}")
+              checkpoint = torch.load(saved_model_path, map_location=device)
+              model.load_state_dict(checkpoint['model_state_dict'])
+
+              print("[INFO] Testing the loaded model...")
+              avg_test_loss, avg_accuracy, avg_precision, avg_recall, avg_f1_score, avg_dice_score, avg_iou = testModel.test_model(model, test_loader, lossFunc, device, channels, dataset_type)
+
+              print(f"avg_accuracy = {avg_accuracy}, avg_precision = {avg_precision}, avg_recall = {avg_recall}, avg_f1_score = {avg_f1_score}, avg_dice_score = {avg_dice_score}, avg_iou = {avg_iou}")
+
+              wandb.log(
+                  {
+                      "Accuracy": avg_accuracy,
+                      "Precision": avg_precision,
+                      "Recall": avg_recall,
+                      "F1-Score": avg_f1_score,
+                      "DICE": avg_dice_score,
+                      "IOU": avg_iou,
+                  }
+              )
+
+              return
             
             
             print("[INFO] Training the network for {} epochs...".format(epoch))
@@ -167,11 +207,11 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
             for e in tqdm(range(epoch)):
                 
                 #### TRAINING LOOP ####
-                avg_train_loss = trModel.train_model(model, train_loader, lossFunc, opt, device)
+                avg_train_loss = trModel.train_model(model, train_loader, lossFunc, opt, device, channels, dataset_type)
 
 
                 #### VALIDATION LOOP ####
-                avg_val_loss = valModel.validate_model(model, val_loader, lossFunc, device)
+                avg_val_loss = valModel.validate_model(model, val_loader, lossFunc, device, channels, dataset_type)
 
                 early_stopping = stopping.EarlyStopping(patience = 5, verbose = True)
 
@@ -203,7 +243,7 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
             wandb.save(f'epoch_{epoch}_model.pth')
 
             #### TESTING LOOP ####
-            avg_test_loss, avg_accuracy, avg_precision, avg_recall, avg_f1_score, avg_dice_score, avg_iou = testModel.test_model(model, test_loader, lossFunc, device)
+            avg_test_loss, avg_accuracy, avg_precision, avg_recall, avg_f1_score, avg_dice_score, avg_iou = testModel.test_model(model, test_loader, lossFunc, device, channels, dataset_type)
 
             print(f"avg_accuracy = {avg_accuracy}, avg_precision = {avg_precision}, avg_recall = {avg_recall}, avg_f1_score = {avg_f1_score}, avg_dice_score = {avg_dice_score}, avg_iou = {avg_iou}")
 

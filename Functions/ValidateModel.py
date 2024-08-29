@@ -79,16 +79,7 @@ print(device)
 # %matplotlib inline
 
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-def validate_model(model, dataloader, loss_function, device):
+def validate_model(model, dataloader, loss_function, device, channels, dataset_type):
     print("Validating...")
 
     totalValLoss = 0
@@ -98,13 +89,18 @@ def validate_model(model, dataloader, loss_function, device):
     with torch.no_grad():
       # total_val_loss = 0
 
-      for orig_images, masks in dataloader:
-            orig_images, masks = orig_images.to(device), masks.to(device)
+
+      if dataset_type == 'cocoms':
+
+        for orig_images, _, masks in dataloader:
+          orig_images, masks = orig_images.to(device), masks.to(device)
+
+          if channels == 3:
             pred_masks = model(orig_images) # validate on altered_images
-  
-  
-            val_loss = loss_function(pred_masks, masks)
-            totalValLoss += val_loss.item()
+
+
+          val_loss = loss_function(pred_masks, masks)
+          totalValLoss += val_loss.item()
         
 
     avg_val_loss = totalValLoss / len(dataloader)

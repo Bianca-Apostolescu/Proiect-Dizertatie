@@ -78,14 +78,6 @@ print(device)
 # %matplotlib inline
 
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
 
 def filter_data(ann_path, filterCls, bm_path, IMAGE_PATH, MASK_PATH):
     

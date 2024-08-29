@@ -78,20 +78,12 @@ print(device)
 # %matplotlib inline
 
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
 class SegmentationDataset(Dataset):
     
-    def __init__(self, imagePaths, maskPaths, transforms):
+    def __init__(self, imagePaths, binaryMaskPaths, maskPaths, transforms):
         # store the image and mask filepaths, and augmentation transforms
         self.imagePaths = imagePaths
+        self.binaryMaskPaths = binaryMaskPaths
         self.maskPaths = maskPaths
         self.transforms = transforms
         
@@ -104,13 +96,15 @@ class SegmentationDataset(Dataset):
     def __getitem__(self, idx):
 
         image = Image.open(self.imagePaths[idx]).convert("RGB")
+        binary_mask = Image.open(self.binaryMaskPaths[idx]).convert("RGB")
         mask = Image.open(self.maskPaths[idx]).convert("L")
         
         if self.transforms is not None:
             image = self.transforms(image)
+            binary_mask = self.transforms(binary_mask)
             mask = self.transforms(mask)
 
             
         # return a tuple of the image and its mask
-        return (image, mask)
+        return (image, binary_mask, mask)
 

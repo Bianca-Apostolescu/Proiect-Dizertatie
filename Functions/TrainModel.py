@@ -79,27 +79,31 @@ print(device)
 # %matplotlib inline
 
 
-def train_model(model, dataloader, loss_function, optim, device):
+def train_model(model, dataloader, loss_function, optim, device, channels, dataset_type):
     print("Training...")
 
     totalTrainLoss = 0
 
     model.train() # unet.train.train() 
 
-    for orig_images, masks in dataloader:
-        images, masks = orig_images.to(device), masks.to(device)
-
-        optim.zero_grad()
-        pred_masks = model(images)
-
-        loss = loss_function(pred_masks, masks)
-        loss.backward()
-        optim.step()
-
-        pred_masks = (pred_masks > 0.5).float()
-
-        totalTrainLoss += loss.item()
+    if dataset_type == 'cocoms':
       
+      for orig_images, _, masks in dataloader: # instead of using the binary_masks 
+          images, masks = orig_images.to(device), masks.to(device)
+
+          optim.zero_grad()
+
+          if channels == 3:
+            pred_masks = model(images)
+
+          loss = loss_function(pred_masks, masks)
+          loss.backward()
+          optim.step()
+
+          pred_masks = (pred_masks > 0.5).float()
+
+          totalTrainLoss += loss.item()
+        
 
     avg_train_loss = totalTrainLoss / len(dataloader)
 

@@ -80,24 +80,18 @@ print(device)
 # %matplotlib inline
 
 
-# In[ ]:
 
-
-
-
-
-# In[ ]:
-
-
-def plot_results(lent, orig_images, masks, pred_masks):
+def plot_results(lent, orig_images, binary_masks, masks, pred_masks, gs_image):
     
     for i in range (0, lent): # range (0, lent) - for every image combination
           
           # Log image(s)
           wandb.log(
                   {"original_images": [wandb.Image(orig_images.cpu().numpy()[i].transpose(1, 2, 0), caption = "Original_Image")],
+                   "seg_masks": [wandb.Image(binary_masks.cpu().numpy()[i][0], caption = "Seg_Mask")],
                    "gt_masks": [wandb.Image(masks.cpu().numpy()[i][0], caption = "GT_Mask")],
-                   "pred_masks": [wandb.Image(pred_masks.cpu().numpy()[i][0], caption = "Pred_Mask")]
+                   "pred_masks": [wandb.Image(pred_masks.cpu().numpy()[i][0], caption = "Pred_Mask")],
+                   "gs_images": [wandb.Image(gs_image.cpu().numpy()[i][0], caption = "GreenScreen_Image")]
                   })
           
 
