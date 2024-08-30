@@ -107,5 +107,13 @@ def train_model(model, dataloader, loss_function, optim, device, channels, datas
 
     avg_train_loss = totalTrainLoss / len(dataloader)
 
+    # Save model after each epoch
+    model_save_path = os.path.join('/content/model_checkpoints', f"model.pth")
+    torch.save({
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optim.state_dict(),
+        'loss': avg_train_loss,
+    }, model_save_path)
+
     return avg_train_loss
 

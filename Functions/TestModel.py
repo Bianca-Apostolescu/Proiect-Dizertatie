@@ -150,12 +150,12 @@ def test_model(model, dataloader, loss_function, device, channels, dataset_type)
 
 
               ## Actually apply the background image to the predicted masks
-              gs_image = gs.apply_gs(orig_images, pred_masks, background_img)
+              # gs_image = gs.apply_gs(orig_images, pred_masks, background_img)
 
               # Plot results - images 
               print('\n')
               lent = orig_images.cpu().numpy().shape[0]
-              pr.plot_results(lent, orig_images, binary_masks, masks, pred_masks, gs_image)
+              pr.plot_results(lent, orig_images, binary_masks, masks, pred_masks, background_img)
 
               # Flatten the masks tensors
               masks = masks.view(-1)

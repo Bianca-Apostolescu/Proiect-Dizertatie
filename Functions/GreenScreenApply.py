@@ -77,35 +77,86 @@ print(device)
 
 # %matplotlib inline
 
+def apply_gs(orig_image, pred_mask, background):
+    """
+    Apply a green screen effect using the predicted mask to overlay a new background onto the original image.
 
-def apply_gs(orig_image, pred_masks, background):
-    
-    # Resize the new background to match the original image size
-    new_background = cv2.resize(new_background, (orig_image.shape[1], orig_image.shape[0]))
+    Args:
+        orig_image (numpy array or torch tensor): The original image, either as a numpy array or PyTorch tensor.
+        pred_mask (numpy array or torch tensor): The predicted mask, either as a numpy array or PyTorch tensor.
+        background (numpy array): The new background image.
+
+    Returns:
+        numpy array: A single image with the green screen effect applied.
+    """
+    # Convert inputs to numpy arrays if they are PyTorch tensors
+    if isinstance(orig_image, torch.Tensor):
+        orig_image = orig_image.cpu().numpy()
+    if isinstance(pred_mask, torch.Tensor):
+        pred_mask = pred_mask.cpu().numpy()
+
+    # Select the first image and mask from the batch
+    orig_image = orig_image[0]
+    pred_mask = pred_mask[0]
+
+    # fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+    # axes[0].imshow(orig_image)
+    # axes[0].set_title("Original Image")
+    # axes[0].axis('off')
+
+    # axes[1].imshow(pred_mask, cmap='gray')
+    # axes[1].set_title("Segmentation Mask")
+    # axes[1].axis('off')
+
+    # plt.tight_layout()
+    # plt.show()
+
+    # Resize the background to match the original image size
+    background_resized = cv2.resize(background, (orig_image.shape[2], orig_image.shape[1]))
 
     # Ensure the mask is binary (0 and 255 values)
-    _, binary_mask = cv2.threshold(pred_masks, 128, 255, cv2.THRESH_BINARY)
+    pred_mask = (pred_mask * 255).astype(np.uint8)  # Convert to uint8 for OpenCV functions
+    if len(pred_mask.shape) == 3 and pred_mask.shape[0] == 1:
+        pred_mask = pred_mask[0]  # Remove the channel dimension if it's 1
+
+    # Check mask dimensions for single channel
+    if len(pred_mask.shape) != 2:
+        raise ValueError(f"Expected pred_mask to be a single-channel grayscale image, got shape: {pred_mask.shape}")
 
     # Invert the mask to get the background mask
+    _, binary_mask = cv2.threshold(pred_mask, 128, 255, cv2.THRESH_BINARY)
     inverse_mask = cv2.bitwise_not(binary_mask)
 
     # Convert masks to 3 channels to match the image dimensions
     binary_mask_3ch = cv2.cvtColor(binary_mask, cv2.COLOR_GRAY2BGR)
     inverse_mask_3ch = cv2.cvtColor(inverse_mask, cv2.COLOR_GRAY2BGR)
 
+    # Convert original image to BGR format if needed
+    if orig_image.shape[0] == 3:  # RGB format, convert to BGR
+        orig_image_bgr = orig_image.transpose(1, 2, 0).astype(np.uint8)
+    else:
+        orig_image_bgr = cv2.cvtColor(orig_image.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+
+    # Ensure that the original image and mask have the same size and type
+    if orig_image_bgr.shape != binary_mask_3ch.shape:
+        raise ValueError(f"Shape mismatch: orig_image_bgr shape {orig_image_bgr.shape}, binary_mask_3ch shape {binary_mask_3ch.shape}")
+
+    print(f"orig_image_bgr = {orig_image_bgr.shape}")
+    print(f"binary_mask_3ch = {binary_mask_3ch.shape}")
+
     # Extract the foreground from the original image
-    foreground = cv2.bitwise_and(orig_image, binary_mask_3ch)
+    foreground = cv2.bitwise_and(orig_image_bgr, binary_mask_3ch)
 
     # Extract the corresponding region from the new background
-    background = cv2.bitwise_and(new_background, inverse_mask_3ch)
+    background_region = cv2.bitwise_and(background_resized, inverse_mask_3ch)
 
     # Combine the foreground with the new background
-    result_image = cv2.add(foreground, background)
+    result_image = cv2.add(foreground, background_region)
 
-    # Convert images from BGR to RGB for correct color display with matplotlib
-    original_image_rgb = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
+    # Convert the result image from BGR to RGB
     result_image_rgb = cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB)
 
+    # Return the processed image
     return result_image_rgb
 
 
