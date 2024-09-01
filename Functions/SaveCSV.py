@@ -79,11 +79,11 @@ print(device)
 
 
 
-def create_csvs(imagePaths, maskPaths, binaryMaskPaths, small, medium, large):
+def create_csvs(imagePaths, binaryMaskPaths, small, medium, large):
     
     data = {'Image_Paths': imagePaths, 
             'Binary_Paths': binaryMaskPaths,
-            'Mask_Paths': maskPaths
+            # 'Mask_Paths': maskPaths
            }
 
     df = pd.DataFrame(data = data)

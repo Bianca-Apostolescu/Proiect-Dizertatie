@@ -92,7 +92,7 @@ def validate_model(model, dataloader, loss_function, device, channels, dataset_t
 
       if dataset_type == 'cocoms':
 
-        for orig_images, _, masks in dataloader:
+        for orig_images, masks in dataloader:
           orig_images, masks = orig_images.to(device), masks.to(device)
 
           if channels == 3:

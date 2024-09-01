@@ -89,11 +89,11 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
     
     imagePaths = list(loaded_df["Image_Paths"])
     binaryMaskPaths = list(loaded_df["Binary_Paths"])
-    maskPaths = list(loaded_df["Mask_Paths"])
+    # maskPaths = list(loaded_df["Mask_Paths"])
 
     print(f"images = {len(imagePaths)}")
     print(f"binaryMaskPaths = {len(binaryMaskPaths)}")
-    print(f"maskPaths = {len(maskPaths)}")
+    # print(f"maskPaths = {len(maskPaths)}")
 
     for tts in test_split:
         print("[INFO] TEST_SPLIT = {} ...".format(tts))
@@ -103,15 +103,15 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
 
 
         if dataset_type == 'cocoms':
-          split = train_test_split(imagePaths, binaryMaskPaths, maskPaths, test_size = tts, random_state = 19)
+          split = train_test_split(imagePaths, binaryMaskPaths, test_size = tts, random_state = 19)
           (trainImages, testImages) = split[:2]             # First two elements are the train and test splits of imagePaths
-          (trainBinaryMasks, testBinaryMasks) = split[2:4]  # Next two elements are the train and test splits of binaryMaskPaths
-          (trainMasks, testMasks) = split[4:]               # Last two elements are the train and test splits of maskPaths
+          # (trainBinaryMasks, testBinaryMasks) = split[2:4]  # Next two elements are the train and test splits of binaryMaskPaths
+          (trainMasks, testMasks) = split[2:]               # Last two elements are the train and test splits of maskPaths
 
-          split = train_test_split(trainImages, trainBinaryMasks, trainMasks, test_size = valid_split, random_state = 19)
+          split = train_test_split(trainImages, trainMasks, test_size = valid_split, random_state = 19)
           (trainImages, valImages) = split[:2]             # First two elements are the train and test splits of imagePaths
-          (trainBinaryMasks, valBinaryMasks) = split[2:4]  # Next two elements are the train and test splits of binaryMaskPaths
-          (trainMasks, valMasks) = split[4:]               # Last two elements are the train and test splits of maskPaths
+          # (trainBinaryMasks, valBinaryMasks) = split[2:4]  # Next two elements are the train and test splits of binaryMaskPaths
+          (trainMasks, valMasks) = split[2:]               # Last two elements are the train and test splits of maskPaths
 
           print("[INFO] saving testing image paths...")
           f = open(test_paths, "w")
@@ -120,9 +120,9 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
 
        
           # Create datasets and data loaders for training, validation, and testing sets
-          train_dataset = crd.SegmentationDataset(trainImages, trainBinaryMasks, trainMasks, transforms = transforms_train)
-          val_dataset   = crd.SegmentationDataset(valImages,   valBinaryMasks,   valMasks,   transforms = transforms_test)
-          test_dataset  = crd.SegmentationDataset(testImages,  testBinaryMasks,  testMasks,  transforms = transforms_test)
+          train_dataset = crd.SegmentationDataset(trainImages, trainMasks, transforms = transforms_train)
+          val_dataset   = crd.SegmentationDataset(valImages,   valMasks,   transforms = transforms_test)
+          test_dataset  = crd.SegmentationDataset(testImages,  testMasks,  transforms = transforms_test)
 
           train_loader = DataLoader(train_dataset, shuffle = True,  batch_size = batch_size, pin_memory = pin_memory)
           val_loader   = DataLoader(val_dataset,   shuffle = False, batch_size = batch_size, pin_memory = pin_memory)
@@ -146,9 +146,9 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
               gcanet = gca.GCANet(in_c = channels, out_c = 1, only_residual = True).to(device)
               model = gcanet
 
-            elif model_type == 'unet':
+            elif model_type == 'resnet':
 
-              unet = smp.Unet(
+              model = smp.Unet(
                   encoder_name = "resnet101",
                   encoder_weights = "imagenet",
                   in_channels = 3,  # 3 channels for the image
@@ -156,7 +156,43 @@ def main_loop(loaded_df, test_paths, transforms_train, transforms_test, wb_name,
                   activation = 'sigmoid'
                 ).to(device)
               
-              model = unet
+              # model = resnet
+
+            elif model_type == 'mobilenetv2':
+    
+              model = smp.Unet(
+                  encoder_name = 'mobilenet_v2',  # Use MobileNetV2 as encoder
+                  encoder_weights = 'imagenet',  # Use pre-trained weights
+                  in_channels = 3,  # 3 channels for the image
+                  classes = 1,  # 1 class => binary mask
+                  activation = 'sigmoid'
+              ).to(device)
+
+              # model = mobilenet
+
+            elif model_type == 'efficientnet':
+    
+              model = smp.Unet(
+                  encoder_name = 'efficientnet-b3',  # Use efficientnet-b3 as encoder
+                  encoder_weights = 'imagenet',  # Use pre-trained weights
+                  in_channels = 3,  # 3 channels for the image
+                  classes = 1,  # 1 class => binary mask
+                  activation = 'sigmoid'
+              ).to(device)
+
+              # model = efficientnet
+
+            elif model_type == 'deeplab':
+
+              model = smp.DeepLabV3Plus(
+                  encoder_name = 'mobilenet_v2',  # Use efficientnet-b3 as encoder
+                  encoder_weights = 'imagenet',  # Use pre-trained weights
+                  in_channels = 3,  # 3 channels for the image
+                  classes = 1,  # 1 class => binary mask
+                  activation = 'sigmoid'
+              ).to(device)
+
+              # model = deeplab
             
             # Initialize loss function and optimizer
             # lossFunc = nn.BCEWithLogitsLoss()

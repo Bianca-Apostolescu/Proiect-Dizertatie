@@ -88,7 +88,7 @@ def train_model(model, dataloader, loss_function, optim, device, channels, datas
 
     if dataset_type == 'cocoms':
       
-      for orig_images, _, masks in dataloader: # instead of using the binary_masks 
+      for orig_images, masks in dataloader: # instead of using the binary_masks 
           images, masks = orig_images.to(device), masks.to(device)
 
           optim.zero_grad()

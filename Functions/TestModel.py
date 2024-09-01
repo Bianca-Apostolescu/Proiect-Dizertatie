@@ -98,8 +98,8 @@ def test_model(model, dataloader, loss_function, device, channels, dataset_type)
         
         if dataset_type == 'cocoms':
 
-          for orig_images, binary_masks, masks in dataloader:
-              orig_images, binary_masks, masks = orig_images.to(device), binary_masks.to(device), masks.to(device)
+          for orig_images, masks in dataloader:
+              orig_images, masks = orig_images.to(device), masks.to(device)
               
               if channels == 3:
                 pred_masks = model(orig_images)
@@ -155,7 +155,7 @@ def test_model(model, dataloader, loss_function, device, channels, dataset_type)
               # Plot results - images 
               print('\n')
               lent = orig_images.cpu().numpy().shape[0]
-              pr.plot_results(lent, orig_images, binary_masks, masks, pred_masks, background_img)
+              pr.plot_results(lent, orig_images, masks, pred_masks, background_img)
 
               # Flatten the masks tensors
               masks = masks.view(-1)
